@@ -27,7 +27,28 @@ const baseUrl =
   typeof process !== "undefined" &&
   process?.env?.["NEXT_PUBLIC_ASSISTANT_BASE_URL"];
 const autoCloud = baseUrl
-  ? new AssistantCloud({ baseUrl, anonymous: true })
+  ? new AssistantCloud({
+      makeRequest: async (endpoint, options) => {
+        const init: RequestInit = {
+          method: options?.method ?? "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(options?.headers ?? {}),
+          },
+        };
+        if (options?.body) init.body = JSON.stringify(options.body);
+        const res = await fetch(`${baseUrl}${endpoint}`, init);
+        return res.json();
+      },
+      makeRawRequest: (endpoint, options) => {
+        const init: RequestInit = {
+          method: options?.method ?? "GET",
+        };
+        if (options?.headers) init.headers = options.headers;
+        if (options?.body) init.body = JSON.stringify(options.body);
+        return fetch(`${baseUrl}${endpoint}`, init);
+      },
+    })
   : undefined;
 
 export const useCloudThreadListAdapter = (
