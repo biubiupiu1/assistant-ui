@@ -14,8 +14,6 @@ describe("AssistantCloudFiles", () => {
     mockApi = {
       makeRequest: vi.fn(),
       makeRawRequest: vi.fn(),
-      _auth: { getAuthHeaders: vi.fn() },
-      _baseUrl: "https://backend.assistant-api.com",
     } as unknown as AssistantCloudAPI;
 
     // Create the AssistantCloudFiles instance with the mock API
