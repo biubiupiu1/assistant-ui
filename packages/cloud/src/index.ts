@@ -26,6 +26,5 @@ export type {
   MakeRequestOptions,
   AssistantCloudConfig,
   MakeRequestAPI,
-  MakeRawRequestAPI,
 } from "./AssistantCloudAPI";
 export { AssistantCloud } from "./AssistantCloud";

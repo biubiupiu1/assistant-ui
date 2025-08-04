@@ -10,10 +10,6 @@ export type AssistantCloudRunsStreamBody = {
 export class AssistantCloudRuns {
   constructor(private cloud: AssistantCloudAPI) {}
 
-  public __internal_getAssistantOptions(assistantId: string) {
-    return this.cloud.getAssistantOptions(assistantId);
-  }
-
   public async stream(
     body: AssistantCloudRunsStreamBody,
   ): Promise<AssistantStream> {

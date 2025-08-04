@@ -20,7 +20,7 @@ import type {
 import type { AssistantCloudRunsStreamBody } from "./AssistantCloudRuns";
 
 export type MakeRequestOptions = {
-  method?: "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   headers?: Record<string, string>;
   query?: Record<string, unknown>;
   body?: object;
@@ -51,63 +51,58 @@ export type MakeRequestAPI = {
     body: GeneratePresignedUploadUrlRequestBody;
     response: GeneratePresignedUploadUrlResponse;
   };
-  "/threads#list": {
-    query?: AssistantCloudThreadsListQuery;
-    response: AssistantCloudThreadsListResponse;
-  };
-  "/threads#create": {
-    body: AssistantCloudThreadsCreateBody;
-    response: AssistantCloudThreadsCreateResponse;
-  };
-  [k1: `/threads/${string}#update`]: {
-    body: AssistantCloudThreadsUpdateBody;
-    response: void;
-  };
-  [k2: `/threads/${string}#delete`]: {
-    response: void;
-  };
-  [k3: `/threads/${string}/messages#list`]: {
-    response: AssistantCloudThreadMessageListResponse;
-  };
-  [k4: `/threads/${string}/messages#create`]: {
-    body: AssistantCloudThreadMessageCreateBody;
-    response: AssistantCloudMessageCreateResponse;
-  };
-};
-
-export type MakeRawRequestAPI = {
+  "/threads":
+    | {
+        method: "GET";
+        query?: AssistantCloudThreadsListQuery;
+        response: AssistantCloudThreadsListResponse;
+      }
+    | {
+        method: "POST";
+        body: AssistantCloudThreadsCreateBody;
+        response: AssistantCloudThreadsCreateResponse;
+      };
   "/runs/stream": {
     method: "POST";
     body: AssistantCloudRunsStreamBody;
     response: Response;
   };
+} & {
+  [K in `/threads/${string}`]: K extends `/threads/${string}/messages`
+    ?
+        | {
+            method: "GET";
+            response: AssistantCloudThreadMessageListResponse;
+          }
+        | {
+            method: "POST";
+            body: AssistantCloudThreadMessageCreateBody;
+            response: AssistantCloudMessageCreateResponse;
+          }
+    :
+        | {
+            method: "PUT";
+            body: AssistantCloudThreadsUpdateBody;
+            response: void;
+          }
+        | {
+            method: "DELETE";
+            response: void;
+          };
 };
 
 export type AssistantCloudConfig = {
   makeRequest: MakeRequest;
   makeRawRequest?: MakeRawRequest;
-  getAssistantOptions?: (assistantId: string) => {
-    api: string;
-    headers?: () => Promise<Record<string, string>>;
-    body?: object;
-  };
 };
 
 export class AssistantCloudAPI {
   private readonly makeRequestImpl: MakeRequest;
   private readonly makeRawRequestImpl: MakeRawRequest | undefined;
-  private readonly getAssistantOptionsImpl:
-    | ((assistantId: string) => {
-        api: string;
-        headers?: () => Promise<Record<string, string>>;
-        body?: object;
-      })
-    | undefined;
 
   constructor(config: AssistantCloudConfig) {
     this.makeRequestImpl = config.makeRequest;
     this.makeRawRequestImpl = config.makeRawRequest;
-    this.getAssistantOptionsImpl = config.getAssistantOptions;
   }
 
   public async makeRequest(
@@ -124,11 +119,5 @@ export class AssistantCloudAPI {
     if (!this.makeRawRequestImpl)
       throw new Error("makeRawRequest is not configured");
     return this.makeRawRequestImpl(endpoint, options);
-  }
-
-  public getAssistantOptions(assistantId: string) {
-    if (!this.getAssistantOptionsImpl)
-      throw new Error("getAssistantOptions is not configured");
-    return this.getAssistantOptionsImpl(assistantId);
   }
 }
