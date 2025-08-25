@@ -1,5 +1,23 @@
 # @assistant-ui/styles
 
+## 0.1.18
+
+### Patch Changes
+
+- 36d4131: add styles for new threadlist-sidebar, and updates for attachment component
+
+## 0.1.17
+
+### Patch Changes
+
+- 12e0a77: chore: update deps
+
+## 0.1.16
+
+### Patch Changes
+
+- 6bc127b: feat(registry): Update thread and thread-list UI with new design
+
 ## 0.1.15
 
 ### Patch Changes

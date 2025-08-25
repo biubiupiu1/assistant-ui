@@ -1,5 +1,73 @@
 # @assistant-ui/react
 
+## 0.10.43
+
+### Patch Changes
+
+- a80dcff: feat: Add \*ByIndex primitives for direct indexed access
+
+  Added new primitives that allow rendering individual items by index, improving performance and enabling more granular control:
+  - `ThreadPrimitive.MessageByIndex` - Render a specific message by index
+  - `MessagePrimitive.PartByIndex` - Render a specific message part by index
+  - `MessagePrimitive.AttachmentByIndex` - Render a specific message attachment by index
+  - `ComposerPrimitive.AttachmentByIndex` - Render a specific composer attachment by index
+  - `ThreadListPrimitive.ItemByIndex` - Render a specific thread list item by index
+
+  These primitives provide direct access to individual items without iterating through entire collections, and are now used internally by their parent components (Messages, Parts, Attachments, Items) for improved efficiency.
+
+## 0.10.42
+
+### Patch Changes
+
+- 12e0a77: chore: update deps
+- Updated dependencies [12e0a77]
+  - assistant-stream@0.2.23
+  - assistant-cloud@0.1.1
+
+## 0.10.41
+
+### Patch Changes
+
+- eda5558: feat: AI SDK custom UIMessage type support
+
+## 0.10.40
+
+### Patch Changes
+
+- 179f8b7: Add format parameter support to assistant-cloud client library
+  - Add optional `format` query parameter to `AssistantCloudThreadMessages.list()` method
+  - Update cloud history adapter to pass format parameter when loading messages
+  - Enables backend-level message format conversion when supported by the cloud backend
+
+- Updated dependencies [179f8b7]
+  - assistant-cloud@0.1.0
+
+## 0.10.39
+
+### Patch Changes
+
+- a4389da: feat: AI SDK v5 assistant-cloud thread history support
+
+## 0.10.38
+
+### Patch Changes
+
+- 979ee67: feat: assistant cloud support for AI SDK v5
+
+## 0.10.37
+
+### Patch Changes
+
+- f32b6a4: fix: new thread functionality no longer working with new threadlistruntime
+
+## 0.10.36
+
+### Patch Changes
+
+- ed78407: Modified the `detach` and `cancelRun` methods to create a standardized `Error` object with a JSON-encoded message and a name of `"AbortError"`, improving consistency in how abort reasons are passed and processed.
+- 77ce337: Fix polymorphic ref type error in `ComposerInput`
+- f59959e: fix: add image message part support and sanitize function
+
 ## 0.10.35
 
 ### Patch Changes
