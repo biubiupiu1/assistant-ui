@@ -6,7 +6,6 @@ import {
 
 type UseCloudRuntimeOptions = Omit<UseDataStreamRuntimeOptions, "api"> & {
   cloud: AssistantCloud;
-  assistantId: string;
 };
 
 /**

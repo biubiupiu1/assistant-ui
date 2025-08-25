@@ -1,13 +1,13 @@
 import { AssistantCloudAPI } from "./AssistantCloudAPI";
 import { AssistantCloudThreadMessages } from "./AssistantCloudThreadMessages";
 
-type AssistantCloudThreadsListQuery = {
+export type AssistantCloudThreadsListQuery = {
   is_archived?: boolean;
   limit?: number;
   after?: string;
 };
 
-type CloudThread = {
+export type CloudThread = {
   title: string;
   last_message_at: Date;
   metadata: unknown;
@@ -20,22 +20,22 @@ type CloudThread = {
   is_archived: boolean;
 };
 
-type AssistantCloudThreadsListResponse = {
+export type AssistantCloudThreadsListResponse = {
   threads: CloudThread[];
 };
 
-type AssistantCloudThreadsCreateBody = {
+export type AssistantCloudThreadsCreateBody = {
   title?: string | undefined;
   last_message_at: Date;
   metadata?: unknown | undefined;
   external_id?: string | undefined;
 };
 
-type AssistantCloudThreadsCreateResponse = {
+export type AssistantCloudThreadsCreateResponse = {
   thread_id: string;
 };
 
-type AssistantCloudThreadsUpdateBody = {
+export type AssistantCloudThreadsUpdateBody = {
   title?: string | undefined;
   last_message_at?: Date | undefined;
   metadata?: unknown | undefined;
@@ -52,7 +52,7 @@ export class AssistantCloudThreads {
   public async list(
     query?: AssistantCloudThreadsListQuery,
   ): Promise<AssistantCloudThreadsListResponse> {
-    return this.cloud.makeRequest("/threads", { query });
+    return this.cloud.makeRequest("/threads", query ? { query } : {});
   }
 
   public async create(

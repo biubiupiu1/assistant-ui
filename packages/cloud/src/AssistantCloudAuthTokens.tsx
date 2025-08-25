@@ -1,6 +1,6 @@
 import { AssistantCloudAPI } from "./AssistantCloudAPI";
 
-type AssistantCloudAuthTokensCreateResponse = {
+export type AssistantCloudAuthTokensCreateResponse = {
   token: string;
 };
 

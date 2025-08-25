@@ -1,21 +1,21 @@
 import { AssistantCloudAPI } from "./AssistantCloudAPI";
 
-type PdfToImagesRequestBody = {
+export type PdfToImagesRequestBody = {
   file_blob?: string | undefined;
   file_url?: string | undefined;
 };
 
-type PdfToImagesResponse = {
+export type PdfToImagesResponse = {
   success: boolean;
   urls: string[];
   message: string;
 };
 
-type GeneratePresignedUploadUrlRequestBody = {
+export type GeneratePresignedUploadUrlRequestBody = {
   filename: string;
 };
 
-type GeneratePresignedUploadUrlResponse = {
+export type GeneratePresignedUploadUrlResponse = {
   success: boolean;
   signedUrl: string;
   expiresAt: string;

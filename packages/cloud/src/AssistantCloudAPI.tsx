@@ -1,121 +1,123 @@
-import {
-  AssistantCloudAuthStrategy,
-  AssistantCloudJWTAuthStrategy,
-  AssistantCloudAPIKeyAuthStrategy,
-  AssistantCloudAnonymousAuthStrategy,
-} from "./AssistantCloudAuthStrategy";
+import type { AssistantCloudAuthTokensCreateResponse } from "./AssistantCloudAuthTokens";
+import type {
+  PdfToImagesRequestBody,
+  PdfToImagesResponse,
+  GeneratePresignedUploadUrlRequestBody,
+  GeneratePresignedUploadUrlResponse,
+} from "./AssistantCloudFiles";
+import type {
+  AssistantCloudThreadMessageListResponse,
+  AssistantCloudThreadMessageCreateBody,
+  AssistantCloudMessageCreateResponse,
+} from "./AssistantCloudThreadMessages";
+import type {
+  AssistantCloudThreadsListQuery,
+  AssistantCloudThreadsListResponse,
+  AssistantCloudThreadsCreateBody,
+  AssistantCloudThreadsCreateResponse,
+  AssistantCloudThreadsUpdateBody,
+} from "./AssistantCloudThreads";
+import type { AssistantCloudRunsStreamBody } from "./AssistantCloudRuns";
 
-export type AssistantCloudConfig =
-  | {
-      baseUrl: string;
-      authToken: () => Promise<string | null>;
-    }
-  | {
-      apiKey: string;
-      userId: string;
-      workspaceId: string;
-    }
-  | {
-      baseUrl: string;
-      anonymous: true;
-    };
+export type MakeRequestOptions = {
+  method?: "GET" | "POST" | "PUT" | "DELETE";
+  headers?: Record<string, string>;
+  query?: Record<string, unknown>;
+  body?: object;
+};
 
-class CloudAPIError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "APIError";
-  }
-}
+export type MakeRequest = (
+  endpoint: string,
+  options?: MakeRequestOptions,
+) => Promise<any>;
 
-type MakeRequestOptions = {
-  method?: "POST" | "PUT" | "DELETE" | undefined;
-  headers?: Record<string, string> | undefined;
-  query?: Record<string, string | number | boolean> | undefined;
-  body?: object | undefined;
+export type MakeRawRequest = (
+  endpoint: string,
+  options?: MakeRequestOptions,
+) => Promise<Response>;
+
+export type MakeRequestAPI = {
+  "/auth/tokens": {
+    method: "POST";
+    response: AssistantCloudAuthTokensCreateResponse;
+  };
+  "/files/pdf-to-images": {
+    method: "POST";
+    body: PdfToImagesRequestBody;
+    response: PdfToImagesResponse;
+  };
+  "/files/attachments/generate-presigned-upload-url": {
+    method: "POST";
+    body: GeneratePresignedUploadUrlRequestBody;
+    response: GeneratePresignedUploadUrlResponse;
+  };
+  "/threads":
+    | {
+        method: "GET";
+        query?: AssistantCloudThreadsListQuery;
+        response: AssistantCloudThreadsListResponse;
+      }
+    | {
+        method: "POST";
+        body: AssistantCloudThreadsCreateBody;
+        response: AssistantCloudThreadsCreateResponse;
+      };
+  "/runs/stream": {
+    method: "POST";
+    body: AssistantCloudRunsStreamBody;
+    response: Response;
+  };
+} & {
+  [K in `/threads/${string}`]: K extends `/threads/${string}/messages`
+    ?
+        | {
+            method: "GET";
+            response: AssistantCloudThreadMessageListResponse;
+          }
+        | {
+            method: "POST";
+            body: AssistantCloudThreadMessageCreateBody;
+            response: AssistantCloudMessageCreateResponse;
+          }
+    :
+        | {
+            method: "PUT";
+            body: AssistantCloudThreadsUpdateBody;
+            response: void;
+          }
+        | {
+            method: "DELETE";
+            response: void;
+          };
+};
+
+export type AssistantCloudConfig = {
+  makeRequest: MakeRequest;
+  makeRawRequest?: MakeRawRequest;
 };
 
 export class AssistantCloudAPI {
-  public _auth: AssistantCloudAuthStrategy;
-  public _baseUrl;
+  private readonly makeRequestImpl: MakeRequest;
+  private readonly makeRawRequestImpl: MakeRawRequest | undefined;
 
   constructor(config: AssistantCloudConfig) {
-    if ("authToken" in config) {
-      this._baseUrl = config.baseUrl;
-      this._auth = new AssistantCloudJWTAuthStrategy(config.authToken);
-    } else if ("apiKey" in config) {
-      this._baseUrl = "https://backend.assistant-api.com";
-      this._auth = new AssistantCloudAPIKeyAuthStrategy(
-        config.apiKey,
-        config.userId,
-        config.workspaceId,
-      );
-    } else if ("anonymous" in config) {
-      this._baseUrl = config.baseUrl;
-      this._auth = new AssistantCloudAnonymousAuthStrategy(config.baseUrl);
-    } else {
-      throw new Error(
-        "Invalid configuration: Must provide authToken, apiKey, or anonymous configuration",
-      );
-    }
+    this.makeRequestImpl = config.makeRequest;
+    this.makeRawRequestImpl = config.makeRawRequest;
   }
 
-  public async initializeAuth() {
-    return !!this._auth.getAuthHeaders();
+  public async makeRequest(
+    endpoint: string,
+    options: MakeRequestOptions = {},
+  ) {
+    return this.makeRequestImpl(endpoint, options);
   }
 
   public async makeRawRequest(
     endpoint: string,
     options: MakeRequestOptions = {},
   ) {
-    const authHeaders = await this._auth.getAuthHeaders();
-    if (!authHeaders) throw new Error("Authorization failed");
-
-    const headers = {
-      ...authHeaders,
-      ...options.headers,
-      "Content-Type": "application/json",
-    };
-
-    const queryParams = new URLSearchParams();
-    if (options.query) {
-      for (const [key, value] of Object.entries(options.query)) {
-        if (value === false) continue;
-        if (value === true) {
-          queryParams.set(key, "true");
-        } else {
-          queryParams.set(key, value.toString());
-        }
-      }
-    }
-
-    const url = new URL(`${this._baseUrl}/v1${endpoint}`);
-    url.search = queryParams.toString();
-
-    const response = await fetch(url, {
-      method: options.method ?? "GET",
-      headers,
-      body: options.body ? JSON.stringify(options.body) : null,
-    });
-
-    this._auth.readAuthHeaders(response.headers);
-
-    if (!response.ok) {
-      const text = await response.text();
-      try {
-        const body = JSON.parse(text);
-        throw new CloudAPIError(body.message);
-      } catch {
-        throw new Error(
-          `Request failed with status ${response.status}, ${text}`,
-        );
-      }
-    }
-
-    return response;
-  }
-
-  public async makeRequest(endpoint: string, options: MakeRequestOptions = {}) {
-    const response = await this.makeRawRequest(endpoint, options);
-    return response.json();
+    if (!this.makeRawRequestImpl)
+      throw new Error("makeRawRequest is not configured");
+    return this.makeRawRequestImpl(endpoint, options);
   }
 }

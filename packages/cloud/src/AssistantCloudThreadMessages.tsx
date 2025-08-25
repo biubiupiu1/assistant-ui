@@ -15,17 +15,17 @@ type AssistantCloudThreadMessageListQuery = {
   format?: string;
 };
 
-type AssistantCloudThreadMessageListResponse = {
+export type AssistantCloudThreadMessageListResponse = {
   messages: CloudMessage[];
 };
 
-type AssistantCloudThreadMessageCreateBody = {
+export type AssistantCloudThreadMessageCreateBody = {
   parent_id: string | null;
   format: "aui/v0" | string;
   content: ReadonlyJSONObject;
 };
 
-type AssistantCloudMessageCreateResponse = {
+export type AssistantCloudMessageCreateResponse = {
   message_id: string;
 };
 
