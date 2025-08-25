@@ -2,15 +2,16 @@ import { AppendMessage } from "@assistant-ui/react";
 import {
   CreateUIMessage,
   FileUIPart,
+  generateId,
   UIDataTypes,
   UIMessage,
   UIMessagePart,
   UITools,
 } from "ai";
 
-export const toCreateMessage = async (
+export const toCreateMessage = async <UI_MESSAGE extends UIMessage = UIMessage>(
   message: AppendMessage,
-): Promise<CreateUIMessage<UIMessage>> => {
+): Promise<CreateUIMessage<UI_MESSAGE>> => {
   const textParts = message.content
     .filter((part) => part.type === "text")
     .map((t) => t.text)
@@ -53,9 +54,10 @@ export const toCreateMessage = async (
   parts.push(...attachmentParts);
 
   return {
+    id: generateId(),
     role: message.role,
     parts,
-  };
+  } satisfies CreateUIMessage<UIMessage> as CreateUIMessage<UI_MESSAGE>;
 };
 
 const getFileDataURL = (file: File) =>

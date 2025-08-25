@@ -1,22 +1,36 @@
 "use client";
 
-import type { useChat } from "@ai-sdk/react";
-import { useExternalStoreRuntime } from "@assistant-ui/react";
+import type { UIMessage, useChat } from "@ai-sdk/react";
+import {
+  useExternalStoreRuntime,
+  ExternalStoreAdapter,
+  ThreadHistoryAdapter,
+  AssistantRuntime,
+  ThreadMessage,
+  MessageFormatAdapter,
+} from "@assistant-ui/react";
 import { sliceMessagesUntil } from "../utils/sliceMessagesUntil";
 import { toCreateMessage } from "../utils/toCreateMessage";
 import { vercelAttachmentAdapter } from "../utils/vercelAttachmentAdapter";
 import { getVercelAIMessages } from "../getVercelAIMessages";
-import { ExternalStoreAdapter } from "@assistant-ui/react";
 import { AISDKMessageConverter } from "../utils/convertMessage";
+import {
+  AISDKStorageFormat,
+  aiSDKV5FormatAdapter,
+} from "../adapters/aiSDKFormatAdapter";
+import { useExternalHistory } from "./useExternalHistory";
+import { useMemo } from "react";
 
 export type AISDKRuntimeAdapter = {
   adapters?:
-    | Omit<NonNullable<ExternalStoreAdapter["adapters"]>, "attachments">
+    | (NonNullable<ExternalStoreAdapter["adapters"]> & {
+        history?: ThreadHistoryAdapter | undefined;
+      })
     | undefined;
 };
 
-export const useAISDKRuntime = (
-  chatHelpers: ReturnType<typeof useChat>,
+export const useAISDKRuntime = <UI_MESSAGE extends UIMessage = UIMessage>(
+  chatHelpers: ReturnType<typeof useChat<UI_MESSAGE>>,
   adapter: AISDKRuntimeAdapter = {},
 ) => {
   const messages = AISDKMessageConverter.useThreadMessages({
@@ -25,15 +39,43 @@ export const useAISDKRuntime = (
     messages: chatHelpers.messages,
   });
 
+  const isLoading = useExternalHistory(
+    useMemo(
+      () => ({
+        get current(): AssistantRuntime {
+          return runtime;
+        },
+      }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [],
+    ),
+    adapter.adapters?.history,
+    AISDKMessageConverter.toThreadMessages as (
+      messages: UI_MESSAGE[],
+    ) => ThreadMessage[],
+    aiSDKV5FormatAdapter as MessageFormatAdapter<
+      UI_MESSAGE,
+      AISDKStorageFormat
+    >,
+    (messages) => {
+      chatHelpers.setMessages(messages);
+    },
+  );
+
   const runtime = useExternalStoreRuntime({
     isRunning:
       chatHelpers.status === "submitted" || chatHelpers.status === "streaming",
     messages,
     setMessages: (messages) =>
-      chatHelpers.setMessages(messages.map(getVercelAIMessages).flat()),
+      chatHelpers.setMessages(
+        messages.map(getVercelAIMessages<UI_MESSAGE>).flat(),
+      ),
     onCancel: async () => chatHelpers.stop(),
     onNew: async (message) => {
-      await chatHelpers.sendMessage(await toCreateMessage(message));
+      const createMessage = await toCreateMessage<UI_MESSAGE>(message);
+      await chatHelpers.sendMessage(createMessage, {
+        metadata: message.runConfig,
+      });
     },
     onEdit: async (message) => {
       const newMessages = sliceMessagesUntil(
@@ -42,13 +84,16 @@ export const useAISDKRuntime = (
       );
       chatHelpers.setMessages(newMessages);
 
-      await chatHelpers.sendMessage(await toCreateMessage(message));
+      const createMessage = await toCreateMessage<UI_MESSAGE>(message);
+      await chatHelpers.sendMessage(createMessage, {
+        metadata: message.runConfig,
+      });
     },
-    onReload: async (parentId: string | null) => {
+    onReload: async (parentId: string | null, config) => {
       const newMessages = sliceMessagesUntil(chatHelpers.messages, parentId);
       chatHelpers.setMessages(newMessages);
 
-      await chatHelpers.regenerate();
+      await chatHelpers.regenerate({ metadata: config.runConfig });
     },
     onAddToolResult: ({ toolCallId, result }) => {
       chatHelpers.addToolResult({
@@ -61,6 +106,7 @@ export const useAISDKRuntime = (
       attachments: vercelAttachmentAdapter,
       ...adapter.adapters,
     },
+    isLoading,
   });
 
   return runtime;
